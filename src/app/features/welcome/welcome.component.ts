@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 
@@ -15,22 +15,22 @@ import { SocialLinksComponent } from '../../shared/components/social-links/socia
   styleUrls: ['./welcome.component.css']
 })
 export class WelcomeComponent {
-  public showHelpModal = false;
-  public estimationType: 'fibonacci' | 't-shirt' = 'fibonacci';
+  public showHelpModal = signal(false);
+  public estimationType = signal<'fibonacci' | 't-shirt'>('fibonacci');
 
   private router = inject(Router);
   private roomManagementService = inject(RoomManagementService);
 
   public async createRoom() {
     try {
-      const { roomId, hostId } = await this.roomManagementService.createRoom(this.estimationType);
+      const { roomId, hostId } = await this.roomManagementService.createRoom(this.estimationType());
 
       this.navigateToRoom({
         roomId,
         userId: hostId,
         isHost: true,
         isSpectator: false,
-        estimationType: this.estimationType
+        estimationType: this.estimationType()
       });
     } catch (error) {
       console.error('Error creating room:', error);

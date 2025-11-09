@@ -1,4 +1,4 @@
-import { Component, HostListener, OnInit, output } from '@angular/core';
+import { Component, HostListener, OnInit, output, signal } from '@angular/core';
 import { TablerIconComponent } from 'angular-tabler-icons';
 import { CommonModule } from '@angular/common';
 
@@ -16,8 +16,8 @@ interface HelpItem {
 })
 export class HelpModalComponent implements OnInit {
   readonly close = output<void>();
-  isClosing = false;
-  isInitialized = false;
+  readonly isClosing = signal(false);
+  readonly isInitialized = signal(false);
 
   helpItems: HelpItem[] = [
     {
@@ -80,7 +80,7 @@ export class HelpModalComponent implements OnInit {
 
   ngOnInit(): void {
     setTimeout(() => {
-      this.isInitialized = true;
+      this.isInitialized.set(true);
     }, 0);
   }
 
@@ -97,9 +97,9 @@ export class HelpModalComponent implements OnInit {
   }
 
   closeWithAnimation(): void {
-    if (this.isClosing) return;
+    if (this.isClosing()) return;
 
-    this.isClosing = true;
+    this.isClosing.set(true);
 
     setTimeout(() => {
       this.close.emit(void 0);

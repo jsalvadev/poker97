@@ -1,13 +1,13 @@
 <div
   class="fixed inset-0 bg-emerald-900/0 backdrop-blur-none z-50 flex items-center justify-center p-4 transition-all duration-500 ease-out modal-open"
-  [ngClass]="{ 'modal-close': isClosing }"
+  [ngClass]="{ 'modal-close': isClosing() }"
   role="dialog"
   aria-modal="true"
   aria-labelledby="modal-title"
 >
   <div
     class="bg-gradient-to-br from-gray-700/90 to-emerald-800/90 rounded-lg p-6 max-w-2xl w-full relative border-l-2 border-emerald-500/50 shadow-lg transition-all duration-500 ease-out card-open overflow-y-auto max-h-[90vh]"
-    [ngClass]="{ 'card-close': isClosing }"
+    [ngClass]="{ 'card-close': isClosing() }"
   >
     <button
       (click)="closeWithAnimation()"

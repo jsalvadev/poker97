@@ -7,7 +7,7 @@ import { GlobalLoadingService } from '../../../core/services/global-loading.serv
   standalone: true,
   imports: [CommonModule],
   template: `
-    @if (globalLoadingService.loading$ | async) {
+    @if (globalLoadingService.loading()) {
       <div class="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/50">
         <div class="flex flex-col items-center">
           <div class="w-12 h-12 border-3 border-gray-300 border-t-emerald-500 rounded-full animate-spin mb-2"></div>

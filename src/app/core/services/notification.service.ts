@@ -1,5 +1,4 @@
-import { Injectable } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
+import { Injectable, signal } from '@angular/core';
 
 export interface Notification {
   message: string;
@@ -10,13 +9,12 @@ export interface Notification {
   providedIn: 'root'
 })
 export class NotificationService {
-  private notification = new BehaviorSubject<Notification | null>(null);
-  notification$ = this.notification.asObservable();
+  public readonly notification = signal<Notification | null>(null);
 
   showError(message: string) {
     const casinoMessage = this.formatCasinoMessage(message);
-    this.notification.next({ message: casinoMessage, type: 'table-closed' });
-    setTimeout(() => this.notification.next(null), 6000);
+    this.notification.set({ message: casinoMessage, type: 'table-closed' });
+    setTimeout(() => this.notification.set(null), 6000);
   }
 
   private formatCasinoMessage(message: string): string {
