@@ -7,7 +7,7 @@ import { NotificationService } from '../../../core/services/notification.service
   standalone: true,
   imports: [CommonModule],
   template: `
-    @if (notificationService.notification$ | async; as notification) {
+    @if (notificationService.notification(); as notification) {
       <div class="casino-notification animate-fadeIn">
         <div class="notification-content">
           <div class="suits">♠️ ♥️</div>

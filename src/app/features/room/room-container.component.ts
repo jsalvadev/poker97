@@ -1,7 +1,8 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal, effect } from '@angular/core';
 import { CommonModule, Location } from '@angular/common';
 import { Observable, firstValueFrom } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { RoomConfig } from '../../core/types/room.types';
 import { VoteStateService } from '../../core/services/vote-state.service';
 import { UIStateService } from '../../core/services/ui-state.service';
@@ -20,15 +21,15 @@ import { FirebaseConnectionService } from '../../core/services/firebase-connecti
 export class RoomContainerComponent implements OnInit {
   public numbers = [1, 2, 3, 5, 8, 13, 21];
   public tshirtSizes = ['XS', 'S', 'M', 'L', 'XL'];
-  public selectedNumber: number | null = null;
-  public selectedSize: string | null = null;
+  public selectedNumber = signal<number | null>(null);
+  public selectedSize = signal<string | null>(null);
   public state!: RoomConfig;
-  public copyingLink = false;
-  public usersConnectedCount$!: Observable<number>;
-  public usersVotedCount$!: Observable<number>;
-  public votes$!: Observable<(number | null)[]>;
-  public averageVotes$!: Observable<number | string>;
-  public forceReveal$!: Observable<boolean>;
+  public copyingLink = signal(false);
+  public usersConnectedCount = signal<number>(0);
+  public usersVotedCount = signal<number>(0);
+  public votes = signal<(number | null)[]>([]);
+  public averageVotes = signal<number | string>(0);
+  public forceReveal = signal<boolean>(false);
 
   private location = inject(Location);
   private router = inject(Router);
@@ -112,59 +113,68 @@ export class RoomContainerComponent implements OnInit {
 
     const voteState$ = this.voteStateService.getVoteStateForUI(this.state.roomId);
 
-    this.votes$ = voteState$.pipe(map(state => state.votes));
-    this.usersConnectedCount$ = voteState$.pipe(map(state => state.usersConnectedCount));
-    this.usersVotedCount$ = voteState$.pipe(map(state => state.usersVotedCount));
-    this.averageVotes$ = voteState$.pipe(map(state => state.averageVote));
-    this.forceReveal$ = voteState$.pipe(map(state => state.forceReveal));
+    const voteState = toSignal(voteState$, { initialValue: { votes: [], usersConnectedCount: 0, usersVotedCount: 0, averageVote: 0, forceReveal: false } });
 
-    this.votingService.getUserVote(this.state.roomId, this.state.userId).subscribe(vote => {
+    effect(() => {
+      const state = voteState();
+      this.votes.set(state.votes);
+      this.usersConnectedCount.set(state.usersConnectedCount);
+      this.usersVotedCount.set(state.usersVotedCount);
+      this.averageVotes.set(state.averageVote);
+      this.forceReveal.set(state.forceReveal);
+    }, { allowSignalWrites: true });
+
+    const userVote$ = this.votingService.getUserVote(this.state.roomId, this.state.userId);
+    const userVote = toSignal(userVote$, { initialValue: null });
+
+    effect(() => {
+      const vote = userVote();
       if (vote === null) {
-        this.selectedNumber = null;
-        this.selectedSize = null;
+        this.selectedNumber.set(null);
+        this.selectedSize.set(null);
         return;
       }
 
       if (this.state.estimationType === 't-shirt') {
-        this.selectedSize = this.tshirtSizes[vote - 1] || null;
-        this.selectedNumber = vote;
+        this.selectedSize.set(this.tshirtSizes[vote - 1] || null);
+        this.selectedNumber.set(vote);
       } else {
-        this.selectedNumber = vote;
+        this.selectedNumber.set(vote);
       }
-    });
+    }, { allowSignalWrites: true });
   }
 
   public onValueSelect(vote: number | string): void {
     let numericVote: number;
     if (this.state.estimationType === 't-shirt') {
       numericVote = this.tshirtSizes.indexOf(vote as string) + 1;
-      this.selectedSize = vote as string;
+      this.selectedSize.set(vote as string);
     } else {
       numericVote = vote as number;
     }
 
-    if (this.selectedNumber === null) {
-      this.selectedNumber = numericVote;
+    if (this.selectedNumber() === null) {
+      this.selectedNumber.set(numericVote);
     }
     this.voteStateService.handleVote(this.state.roomId, this.state.userId, numericVote);
   }
 
   public deleteMyVote(): void {
     this.voteStateService.handleVote(this.state.roomId, this.state.userId, null);
-    this.selectedNumber = null;
-    this.selectedSize = null;
+    this.selectedNumber.set(null);
+    this.selectedSize.set(null);
   }
 
   public copyInviteLink(): void {
     this.uiStateService.copyInviteLink(this.state.roomId);
-    this.uiStateService.setTemporaryState(value => (this.copyingLink = value));
+    this.uiStateService.setTemporaryState(value => this.copyingLink.set(value));
   }
 
   public async onResetVotes(): Promise<void> {
     try {
       await this.votingService.resetVotes(this.state.roomId, this.state.userId);
       this.voteStateService.resetConfettiState(this.state.roomId);
-      this.selectedNumber = null;
+      this.selectedNumber.set(null);
     } catch (error) {
       console.error('Error resetting votes:', error);
     }
@@ -172,8 +182,8 @@ export class RoomContainerComponent implements OnInit {
 
   public async onForceReveal(): Promise<void> {
     try {
-      const usersVoted = await firstValueFrom(this.usersVotedCount$.pipe(map(count => count || 0)));
-      const usersConnected = await firstValueFrom(this.usersConnectedCount$.pipe(map(count => count || 0)));
+      const usersVoted = this.usersVotedCount() || 0;
+      const usersConnected = this.usersConnectedCount() || 0;
 
       if (usersVoted <= 0 || usersConnected <= 1 || usersVoted === usersConnected) {
         return;
@@ -194,8 +204,8 @@ export class RoomContainerComponent implements OnInit {
   }
 
   public async toggleSpectator(): Promise<void> {
-    const usersConnected = await firstValueFrom(this.usersConnectedCount$.pipe(map(count => count || 0)));
-    const usersVoted = await firstValueFrom(this.usersVotedCount$.pipe(map(count => count || 0)));
+    const usersConnected = this.usersConnectedCount() || 0;
+    const usersVoted = this.usersVotedCount() || 0;
 
     if (usersConnected && usersVoted && usersConnected === usersVoted && usersConnected > 0) {
       return;
@@ -207,7 +217,7 @@ export class RoomContainerComponent implements OnInit {
 
     await this.votingService.updateSpectatorStatus(this.state.roomId, this.state.userId, this.state.isSpectator);
 
-    this.selectedNumber = null;
-    this.selectedSize = null;
+    this.selectedNumber.set(null);
+    this.selectedSize.set(null);
   }
 }

@@ -8,7 +8,8 @@
       <label class="flex items-center gap-x-2 group">
         <input
           type="radio"
-          [(ngModel)]="estimationType"
+          [ngModel]="estimationType()"
+          (ngModelChange)="estimationType.set($event)"
           name="estimationType"
           value="fibonacci"
           class="form-radio h-5 w-5 text-emerald-500 border-gray-600 bg-gray-800/50 focus:ring-emerald-500 focus:ring-offset-0 checked:bg-emerald-500 transition-colors duration-300"
@@ -20,7 +21,8 @@
       <label class="flex items-center gap-x-2 group">
         <input
           type="radio"
-          [(ngModel)]="estimationType"
+          [ngModel]="estimationType()"
+          (ngModelChange)="estimationType.set($event)"
           name="estimationType"
           value="t-shirt"
           class="form-radio h-5 w-5 text-emerald-500 border-gray-600 bg-gray-800/50 focus:ring-emerald-500 focus:ring-offset-0 checked:bg-emerald-500 transition-colors duration-300"
@@ -43,7 +45,7 @@
 
     <div class="flex justify-center mt-6">
       <button
-        (click)="showHelpModal = true"
+        (click)="showHelpModal.set(true)"
         class="text-gray-300 hover:text-emerald-400 transition-colors duration-300 flex items-center gap-2 text-base"
       >
         <i-tabler name="info-circle" />
@@ -56,7 +58,7 @@
     <app-social-links />
   </div>
 
-  @if (showHelpModal) {
-    <app-help-modal (close)="showHelpModal = false" />
+  @if (showHelpModal()) {
+    <app-help-modal (close)="showHelpModal.set(false)" />
   }
 </div>
