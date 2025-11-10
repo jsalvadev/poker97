@@ -1,5 +1,6 @@
-import { Injectable, inject } from '@angular/core';
+import { DestroyRef, Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RoomManagementService } from './room-management.service';
 import { ParticipantService } from './participant.service';
 
@@ -10,6 +11,7 @@ export class UIStateService {
   private router = inject(Router);
   private roomManagementService = inject(RoomManagementService);
   private participantService = inject(ParticipantService);
+  private destroyRef = inject(DestroyRef);
 
   public copyInviteLink(roomId: string): void {
     const baseUrl = window.location.origin;
@@ -92,8 +94,16 @@ export class UIStateService {
   }
 
   public setupRoomDeletionListener(roomId: string): void {
-    this.roomManagementService.listenToRoomDeletion(roomId).subscribe(() => {
-      this.router.navigate(['/welcome']);
-    });
+    this.roomManagementService.listenToRoomDeletion(roomId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.router.navigate(['/welcome']);
+        },
+        error: (error) => {
+          console.error('Error listening to room deletion:', error);
+          this.router.navigate(['/welcome']);
+        }
+      });
   }
 }

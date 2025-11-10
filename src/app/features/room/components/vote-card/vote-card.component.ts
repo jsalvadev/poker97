@@ -1,5 +1,6 @@
 import { Component, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { TSHIRT_SIZES } from '../../../../core/constants/estimation.constants';
 
 @Component({
   selector: 'app-vote-card',
@@ -12,7 +13,7 @@ export class VoteCardComponent {
   public readonly showNullVote = input(false);
   public readonly allVoted = input(false);
   public readonly estimationType = input<'fibonacci' | 't-shirt'>('fibonacci');
-  public readonly tshirtSizes = ['XS', 'S', 'M', 'L', 'XL'];
+  private readonly tshirtSizes = TSHIRT_SIZES;
 
   public getDisplayValue(): string {
     if (this.vote() === null) {

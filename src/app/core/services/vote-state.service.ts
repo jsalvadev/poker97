@@ -5,6 +5,7 @@ import { VotingService } from './voting.service';
 import { ParticipantService } from './participant.service';
 import { ConfettiService } from './confetti.service';
 import { RoomManagementService } from './room-management.service';
+import { FIBONACCI_NUMBERS, TSHIRT_SIZES } from '../constants/estimation.constants';
 
 @Injectable({
   providedIn: 'root'
@@ -29,21 +30,20 @@ export class VoteStateService {
     const forceReveal$ = this.votingService.getForceRevealStatus(roomId);
 
     return combineLatest([votes$, usersConnectedCount$, usersVotedCount$, forceReveal$]).pipe(
-      switchMap(([votes, connected, voted, forceReveal]: [number[], number, number, boolean]) => {
+      switchMap(async ([votes, connected, voted, forceReveal]: [number[], number, number, boolean]) => {
         if (connected === voted && connected > 0 && this.checkUnanimousVotes(votes)) {
           this.triggerConfettiOnce(roomId, votes);
         } else if (votes.length === 0 || voted === 0) {
           this.resetConfettiState(roomId);
         }
-        return from(this.calculateStatistic(roomId, votes)).pipe(
-          map((statistic: number | string) => ({
-            votes,
-            usersConnectedCount: connected,
-            usersVotedCount: voted,
-            averageVote: statistic,
-            forceReveal
-          }))
-        );
+        const statistic = await this.calculateStatistic(roomId, votes);
+        return {
+          votes,
+          usersConnectedCount: connected,
+          usersVotedCount: voted,
+          averageVote: statistic,
+          forceReveal
+        };
       })
     );
   }
@@ -51,9 +51,20 @@ export class VoteStateService {
   public async handleVote(roomId: string, userId: string, vote: number | null): Promise<void> {
     if (vote === null) {
       await this.votingService.removeVote(roomId, userId);
-    } else {
-      await this.votingService.addVote(roomId, userId, vote);
+      return;
     }
+
+    // Validate vote value
+    const estimationType = await this.roomManagementService.getRoomEstimationType(roomId);
+    const validVotes = estimationType === 'fibonacci'
+      ? Array.from(FIBONACCI_NUMBERS)
+      : Array.from({ length: TSHIRT_SIZES.length }, (_, i) => i + 1);
+
+    if (!validVotes.includes(vote)) {
+      throw new Error(`Invalid vote value: ${vote}. Expected one of: ${validVotes.join(', ')}`);
+    }
+
+    await this.votingService.addVote(roomId, userId, vote);
   }
 
   public resetConfettiState(roomId: string): void {
@@ -73,22 +84,21 @@ export class VoteStateService {
     const forceReveal$ = this.votingService.getForceRevealStatus(roomId);
 
     return combineLatest([allVotes$, usersConnectedCount$, usersVotedCount$, forceReveal$]).pipe(
-      switchMap(([votes, connected, voted, forceReveal]: [(number | null)[], number, number, boolean]) => {
+      switchMap(async ([votes, connected, voted, forceReveal]: [(number | null)[], number, number, boolean]) => {
         const numericVotes = votes.filter(v => v !== null) as number[];
         if (connected === voted && connected > 0 && this.checkUnanimousVotes(numericVotes)) {
           this.triggerConfettiOnce(roomId, numericVotes);
         } else if (votes.length === 0 || voted === 0) {
           this.resetConfettiState(roomId);
         }
-        return from(this.calculateStatistic(roomId, numericVotes)).pipe(
-          map((statistic: number | string) => ({
-            votes,
-            usersConnectedCount: connected,
-            usersVotedCount: voted,
-            averageVote: statistic,
-            forceReveal
-          }))
-        );
+        const statistic = await this.calculateStatistic(roomId, numericVotes);
+        return {
+          votes,
+          usersConnectedCount: connected,
+          usersVotedCount: voted,
+          averageVote: statistic,
+          forceReveal
+        };
       })
     );
   }
@@ -137,9 +147,8 @@ export class VoteStateService {
   }
 
   private numberToTshirtSize(vote: number): string {
-    const tshirtSizes = ['XS', 'S', 'M', 'L', 'XL'];
     const index = vote - 1;
-    return index >= 0 && index < tshirtSizes.length ? tshirtSizes[index] : 'XS';
+    return index >= 0 && index < TSHIRT_SIZES.length ? TSHIRT_SIZES[index] : 'XS';
   }
 
   private async calculateStatistic(roomId: string, votes: number[]): Promise<number | string> {
