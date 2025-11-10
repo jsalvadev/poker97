@@ -12,6 +12,8 @@ import { Router } from '@angular/router';
 import { RoomManagementService } from '../../core/services/room-management.service';
 import { FirebaseConnectionService } from '../../core/services/firebase-connection.service';
 import { StorageService } from '../../core/services/storage.service';
+import { LoggerService } from '../../core/services/logger.service';
+import { FIBONACCI_NUMBERS, TSHIRT_SIZES } from '../../core/constants/estimation.constants';
 
 @Component({
   selector: 'app-room-container',
@@ -20,8 +22,8 @@ import { StorageService } from '../../core/services/storage.service';
   templateUrl: './room-container.component.html'
 })
 export class RoomContainerComponent implements OnInit {
-  public numbers = [1, 2, 3, 5, 8, 13, 21];
-  public tshirtSizes = ['XS', 'S', 'M', 'L', 'XL'];
+  public readonly numbers = [...FIBONACCI_NUMBERS];
+  public readonly tshirtSizes = [...TSHIRT_SIZES];
   public selectedNumber = signal<number | null>(null);
   public selectedSize = signal<string | null>(null);
   public state!: RoomConfig;
@@ -40,37 +42,38 @@ export class RoomContainerComponent implements OnInit {
   private roomManagementService = inject(RoomManagementService);
   private firebaseService = inject(FirebaseConnectionService);
   private storageService = inject(StorageService);
+  private logger = inject(LoggerService);
 
   public async ngOnInit(): Promise<void> {
-    console.log('RoomContainerComponent: Initializing...');
+    this.logger.log('RoomContainerComponent: Initializing...');
 
     const locationState = this.location.getState() as RoomConfig;
     const historyState = history.state as RoomConfig;
-    console.log('Location state:', locationState);
-    console.log('History state:', historyState);
+    this.logger.log('Location state:', locationState);
+    this.logger.log('History state:', historyState);
 
     let sessionState: RoomConfig | null = null;
     const storedConfig = this.storageService.getItem('roomConfig');
     if (storedConfig) {
       try {
         sessionState = JSON.parse(storedConfig) as RoomConfig;
-        console.log('Loaded session state from storage:', sessionState);
+        this.logger.log('Loaded session state from storage:', sessionState);
       } catch (e) {
-        console.error('Failed to parse room config from sessionStorage', e);
+        this.logger.error('Failed to parse room config from sessionStorage', e);
       }
     }
 
     if (locationState?.roomId && locationState?.userId) {
-      console.log('Using location state');
+      this.logger.log('Using location state');
       this.state = locationState;
     } else if (historyState?.roomId && historyState?.userId) {
-      console.log('Using history state');
+      this.logger.log('Using history state');
       this.state = historyState;
     } else if (sessionState?.roomId && sessionState?.userId) {
-      console.log('Using session state');
+      this.logger.log('Using session state');
       this.state = sessionState;
     } else {
-      console.log('No valid state found, redirecting to welcome');
+      this.logger.log('No valid state found, redirecting to welcome');
       this.router.navigate(['/welcome']);
       return;
     }
@@ -79,7 +82,7 @@ export class RoomContainerComponent implements OnInit {
       ...this.state,
       lastActive: Date.now()
     };
-    console.log('Storing state in sessionStorage:', stateToStore);
+    this.logger.log('Storing state in sessionStorage:', stateToStore);
     this.storageService.setItem('roomConfig', JSON.stringify(stateToStore));
 
     if (this.state.isHost) {
@@ -98,7 +101,7 @@ export class RoomContainerComponent implements OnInit {
           lastActivity: Date.now()
         });
       } catch (error) {
-        console.error('Error restoring host session:', error);
+        this.logger.error('Error restoring host session:', error);
       }
     } else {
       this.uiStateService.setupRoomDeletionListener(this.state.roomId);
@@ -109,7 +112,7 @@ export class RoomContainerComponent implements OnInit {
           { lastActive: Date.now() }
         );
       } catch (error) {
-        console.error('Error updating participant status:', error);
+        this.logger.error('Error updating participant status:', error);
       }
     }
 
@@ -178,7 +181,7 @@ export class RoomContainerComponent implements OnInit {
       this.voteStateService.resetConfettiState(this.state.roomId);
       this.selectedNumber.set(null);
     } catch (error) {
-      console.error('Error resetting votes:', error);
+      this.logger.error('Error resetting votes:', error);
     }
   }
 
@@ -193,7 +196,7 @@ export class RoomContainerComponent implements OnInit {
 
       await this.votingService.forceRevealCards(this.state.roomId, this.state.userId);
     } catch (error) {
-      console.error('Error forcing card reveal:', error);
+      this.logger.error('Error forcing card reveal:', error);
     }
   }
 

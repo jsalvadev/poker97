@@ -8,17 +8,11 @@ interface ParticipantData {
   isHost: boolean;
   isSpectator: boolean;
   vote: number | null;
+  lastActive?: number;
 }
 
 interface RoomData {
   forceReveal?: boolean;
-}
-
-interface ParticipantData {
-  isHost: boolean;
-  isSpectator: boolean;
-  vote: number | null;
-  lastActive?: number;
 }
 
 type Participants = Record<string, ParticipantData>;
@@ -137,16 +131,6 @@ export class VotingService {
       const roomData: RoomData = snapshot.val();
       return roomData.forceReveal === true;
     });
-  }
-
-  public async checkIsHost(roomId: string, userId: string): Promise<boolean> {
-    try {
-      const participant = await this.firebaseService.getData(this.firebaseService.getParticipantPath(roomId, userId));
-      return participant?.isHost === true;
-    } catch (error) {
-      console.error('Error checking if user is host:', error);
-      return false;
-    }
   }
 
   public async getRoomParticipants(roomId: string): Promise<Record<string, ParticipantData> | null> {

@@ -5,6 +5,7 @@ import { VotingService } from './voting.service';
 import { ParticipantService } from './participant.service';
 import { ConfettiService } from './confetti.service';
 import { RoomManagementService } from './room-management.service';
+import { TSHIRT_SIZES } from '../constants/estimation.constants';
 
 @Injectable({
   providedIn: 'root'
@@ -137,9 +138,8 @@ export class VoteStateService {
   }
 
   private numberToTshirtSize(vote: number): string {
-    const tshirtSizes = ['XS', 'S', 'M', 'L', 'XL'];
     const index = vote - 1;
-    return index >= 0 && index < tshirtSizes.length ? tshirtSizes[index] : 'XS';
+    return index >= 0 && index < TSHIRT_SIZES.length ? TSHIRT_SIZES[index] : 'XS';
   }
 
   private async calculateStatistic(roomId: string, votes: number[]): Promise<number | string> {
