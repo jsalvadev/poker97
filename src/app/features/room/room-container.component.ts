@@ -11,6 +11,7 @@ import { RoomPresentationComponent } from './room-presentation.component';
 import { Router } from '@angular/router';
 import { RoomManagementService } from '../../core/services/room-management.service';
 import { FirebaseConnectionService } from '../../core/services/firebase-connection.service';
+import { StorageService } from '../../core/services/storage.service';
 
 @Component({
   selector: 'app-room-container',
@@ -38,6 +39,7 @@ export class RoomContainerComponent implements OnInit {
   private uiStateService = inject(UIStateService);
   private roomManagementService = inject(RoomManagementService);
   private firebaseService = inject(FirebaseConnectionService);
+  private storageService = inject(StorageService);
 
   public async ngOnInit(): Promise<void> {
     console.log('RoomContainerComponent: Initializing...');
@@ -48,7 +50,7 @@ export class RoomContainerComponent implements OnInit {
     console.log('History state:', historyState);
 
     let sessionState: RoomConfig | null = null;
-    const storedConfig = sessionStorage.getItem('roomConfig');
+    const storedConfig = this.storageService.getItem('roomConfig');
     if (storedConfig) {
       try {
         sessionState = JSON.parse(storedConfig) as RoomConfig;
@@ -78,7 +80,7 @@ export class RoomContainerComponent implements OnInit {
       lastActive: Date.now()
     };
     console.log('Storing state in sessionStorage:', stateToStore);
-    sessionStorage.setItem('roomConfig', JSON.stringify(stateToStore));
+    this.storageService.setItem('roomConfig', JSON.stringify(stateToStore));
 
     if (this.state.isHost) {
       try {
@@ -213,7 +215,7 @@ export class RoomContainerComponent implements OnInit {
 
     this.state.isSpectator = !this.state.isSpectator;
 
-    sessionStorage.setItem('roomConfig', JSON.stringify(this.state));
+    this.storageService.setItem('roomConfig', JSON.stringify(this.state));
 
     await this.votingService.updateSpectatorStatus(this.state.roomId, this.state.userId, this.state.isSpectator);
 

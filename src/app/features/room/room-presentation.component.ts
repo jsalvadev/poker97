@@ -46,7 +46,8 @@ export class RoomPresentationComponent {
 
   @HostListener('window:beforeunload')
   handleWindowClose(): void {
-    const isPageRefresh = performance.navigation?.type === 1;
+    const navigationEntry = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+    const isPageRefresh = navigationEntry?.type === 'reload';
 
     const state = this.state();
     if (state?.roomId && state?.userId && !isPageRefresh) {

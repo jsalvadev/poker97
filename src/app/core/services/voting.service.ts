@@ -83,7 +83,10 @@ export class VotingService {
   }
 
   public calcAverageVote(roomId: string): Observable<number> {
-    return this.getVotes(roomId).pipe(map(votes => votes.reduce((a, b) => a + b, 0) / votes.length));
+    return this.getVotes(roomId).pipe(map(votes => {
+      if (!votes.length) return 0;
+      return votes.reduce((a, b) => a + b, 0) / votes.length;
+    }));
   }
 
   public async resetVotes(roomId: string, userId: string): Promise<void> {

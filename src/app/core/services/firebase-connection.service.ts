@@ -3,7 +3,7 @@ import { initializeApp } from 'firebase/app';
 import { DataSnapshot, get, getDatabase, onValue, push, ref, set, update } from 'firebase/database';
 import { Observable } from 'rxjs';
 
-import { environment } from '../../../environments/environment.development';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'

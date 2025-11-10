@@ -4,6 +4,7 @@ import { filter, map, Observable } from 'rxjs';
 import { FirebaseConnectionService } from './firebase-connection.service';
 import { RoomAuthorizationService } from './room-authorization.service';
 import { GlobalLoadingService } from './global-loading.service';
+import { StorageService } from './storage.service';
 
 export interface CreateRoomResponse {
   roomId: string;
@@ -23,6 +24,7 @@ export class RoomManagementService {
   private firebaseService = inject(FirebaseConnectionService);
   private authService = inject(RoomAuthorizationService);
   private globalLoadingService = inject(GlobalLoadingService);
+  private storageService = inject(StorageService);
 
   public async createRoom(estimationType: 'fibonacci' | 't-shirt' = 'fibonacci'): Promise<CreateRoomResponse> {
     this.globalLoadingService.show();
@@ -64,7 +66,7 @@ export class RoomManagementService {
       const estimationType = roomData.estimationType || 'fibonacci';
       console.log('Room data:', { roomId, estimationType, existingParticipants: roomData?.participants });
 
-      const storedConfig = sessionStorage.getItem('roomConfig');
+      const storedConfig = this.storageService.getItem('roomConfig');
       console.log('Stored config from sessionStorage:', storedConfig);
 
       if (storedConfig) {
@@ -82,7 +84,7 @@ export class RoomManagementService {
                 ...sessionState,
                 lastReconnected: Date.now()
               };
-              sessionStorage.setItem('roomConfig', JSON.stringify(updatedConfig));
+              this.storageService.setItem('roomConfig', JSON.stringify(updatedConfig));
 
               return {
                 userId: sessionState.userId,
@@ -123,7 +125,7 @@ export class RoomManagementService {
         joinedAt: Date.now()
       };
       console.log('Storing new session state:', newSessionState);
-      sessionStorage.setItem('roomConfig', JSON.stringify(newSessionState));
+      this.storageService.setItem('roomConfig', JSON.stringify(newSessionState));
 
       return {
         userId,
