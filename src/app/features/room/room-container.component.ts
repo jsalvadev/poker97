@@ -190,7 +190,7 @@ export class RoomContainerComponent implements OnInit {
       const usersVoted = this.usersVotedCount() || 0;
       const usersConnected = this.usersConnectedCount() || 0;
 
-      if (usersVoted <= 0 || usersConnected <= 1 || usersVoted === usersConnected) {
+      if (!this.canForceReveal(usersVoted, usersConnected)) {
         return;
       }
 
@@ -212,7 +212,7 @@ export class RoomContainerComponent implements OnInit {
     const usersConnected = this.usersConnectedCount() || 0;
     const usersVoted = this.usersVotedCount() || 0;
 
-    if (usersConnected && usersVoted && usersConnected === usersVoted && usersConnected > 0) {
+    if (this.allUsersHaveVoted(usersConnected, usersVoted)) {
       return;
     }
 
@@ -224,5 +224,13 @@ export class RoomContainerComponent implements OnInit {
 
     this.selectedNumber.set(null);
     this.selectedSize.set(null);
+  }
+
+  private canForceReveal(voted: number, connected: number): boolean {
+    return voted > 0 && connected > 1 && voted < connected;
+  }
+
+  private allUsersHaveVoted(connected: number, voted: number): boolean {
+    return connected > 0 && voted === connected;
   }
 }
