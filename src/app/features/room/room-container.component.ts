@@ -1,8 +1,8 @@
-import { Component, OnInit, inject, signal, effect } from '@angular/core';
+import { Component, OnInit, inject, signal, effect, computed } from '@angular/core';
 import { CommonModule, Location } from '@angular/common';
-import { Observable, firstValueFrom } from 'rxjs';
-import { map } from 'rxjs/operators';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { Observable, firstValueFrom, of } from 'rxjs';
+import { map, switchMap } from 'rxjs/operators';
+import { toSignal, toObservable } from '@angular/core/rxjs-interop';
 import { RoomConfig } from '../../core/types/room.types';
 import { VoteStateService } from '../../core/services/vote-state.service';
 import { UIStateService } from '../../core/services/ui-state.service';
@@ -39,6 +39,10 @@ export class RoomContainerComponent implements OnInit {
   public showConfirmationModal = signal(false);
   public userToRemove = signal<string | null>(null);
 
+  // Signals for room state that will be set in ngOnInit
+  private roomId = signal<string | null>(null);
+  private userId = signal<string | null>(null);
+
   private location = inject(Location);
   private router = inject(Router);
   private votingService = inject(VotingService);
@@ -50,7 +54,56 @@ export class RoomContainerComponent implements OnInit {
   private logger = inject(LoggerService);
   private participantService = inject(ParticipantService);
 
-  public async ngOnInit(): Promise<void> {
+  constructor() {
+    // Create observables that switch based on roomId/userId signals
+    const voteState$ = toObservable(this.roomId).pipe(
+      switchMap(roomId => {
+        if (!roomId) return of({ votes: [], usersConnectedCount: 0, usersVotedCount: 0, averageVote: 0, forceReveal: false, votesWithUserIds: [] });
+        return this.voteStateService.getVoteStateForUI(roomId);
+      })
+    );
+
+    const userVote$ = toObservable(this.roomId).pipe(
+      switchMap(roomId => {
+        const uid = this.userId();
+        if (!roomId || !uid) return of(null);
+        return this.votingService.getUserVote(roomId, uid);
+      })
+    );
+
+    // Convert observables to signals - this happens once in constructor (injection context)
+    const voteState = toSignal(voteState$, { initialValue: { votes: [], usersConnectedCount: 0, usersVotedCount: 0, averageVote: 0, forceReveal: false, votesWithUserIds: [] } });
+    const userVote = toSignal(userVote$, { initialValue: null });
+
+    // Set up effects to sync signals with component state
+    effect(() => {
+      const state = voteState();
+      this.votes.set(state.votes);
+      this.votesWithUserIds.set(state.votesWithUserIds);
+      this.usersConnectedCount.set(state.usersConnectedCount);
+      this.usersVotedCount.set(state.usersVotedCount);
+      this.averageVotes.set(state.averageVote);
+      this.forceReveal.set(state.forceReveal);
+    }, { allowSignalWrites: true });
+
+    effect(() => {
+      const vote = userVote();
+      if (vote === null) {
+        this.selectedNumber.set(null);
+        this.selectedSize.set(null);
+        return;
+      }
+
+      if (this.state.estimationType === 't-shirt') {
+        this.selectedSize.set(this.tshirtSizes[vote - 1] || null);
+        this.selectedNumber.set(vote);
+      } else {
+        this.selectedNumber.set(vote);
+      }
+    }, { allowSignalWrites: true });
+  }
+
+  public ngOnInit(): void {
     this.logger.log('RoomContainerComponent: Initializing...');
 
     const locationState = this.location.getState() as RoomConfig;
@@ -91,69 +144,38 @@ export class RoomContainerComponent implements OnInit {
     this.logger.log('Storing state in sessionStorage:', stateToStore);
     this.storageService.setItem('roomConfig', JSON.stringify(stateToStore));
 
-    if (this.state.isHost) {
-      try {
-        await this.firebaseService.updateData(
-          this.firebaseService.getParticipantPath(this.state.roomId, this.state.userId),
-          {
-            lastActive: Date.now(),
-            isHost: true,
-            isSpectator: false
-          }
-        );
+    // Set signals to trigger reactive subscriptions
+    this.roomId.set(this.state.roomId);
+    this.userId.set(this.state.userId);
 
-        await this.firebaseService.updateData(`rooms/${this.state.roomId}`, {
-          hostId: this.state.userId,
-          lastActivity: Date.now()
-        });
-      } catch (error) {
-        this.logger.error('Error restoring host session:', error);
-      }
+    // Perform async operations without blocking
+    this.initializeFirebaseConnections();
+  }
+
+  private initializeFirebaseConnections(): void {
+    if (this.state.isHost) {
+      this.firebaseService.updateData(
+        this.firebaseService.getParticipantPath(this.state.roomId, this.state.userId),
+        {
+          lastActive: Date.now(),
+          isHost: true,
+          isSpectator: false
+        }
+      ).catch(error => this.logger.error('Error restoring host session:', error));
+
+      this.firebaseService.updateData(`rooms/${this.state.roomId}`, {
+        hostId: this.state.userId,
+        lastActivity: Date.now()
+      }).catch(error => this.logger.error('Error updating room data:', error));
     } else {
       this.uiStateService.setupRoomDeletionListener(this.state.roomId);
+      this.uiStateService.setupParticipantRemovalListener(this.state.roomId, this.state.userId);
 
-      try {
-        await this.firebaseService.updateData(
-          this.firebaseService.getParticipantPath(this.state.roomId, this.state.userId),
-          { lastActive: Date.now() }
-        );
-      } catch (error) {
-        this.logger.error('Error updating participant status:', error);
-      }
+      this.firebaseService.updateData(
+        this.firebaseService.getParticipantPath(this.state.roomId, this.state.userId),
+        { lastActive: Date.now() }
+      ).catch(error => this.logger.error('Error updating participant status:', error));
     }
-
-    const voteState$ = this.voteStateService.getVoteStateForUI(this.state.roomId);
-
-    const voteState = toSignal(voteState$, { initialValue: { votes: [], usersConnectedCount: 0, usersVotedCount: 0, averageVote: 0, forceReveal: false, votesWithUserIds: [] } });
-
-    effect(() => {
-      const state = voteState();
-      this.votes.set(state.votes);
-      this.votesWithUserIds.set(state.votesWithUserIds);
-      this.usersConnectedCount.set(state.usersConnectedCount);
-      this.usersVotedCount.set(state.usersVotedCount);
-      this.averageVotes.set(state.averageVote);
-      this.forceReveal.set(state.forceReveal);
-    }, { allowSignalWrites: true });
-
-    const userVote$ = this.votingService.getUserVote(this.state.roomId, this.state.userId);
-    const userVote = toSignal(userVote$, { initialValue: null });
-
-    effect(() => {
-      const vote = userVote();
-      if (vote === null) {
-        this.selectedNumber.set(null);
-        this.selectedSize.set(null);
-        return;
-      }
-
-      if (this.state.estimationType === 't-shirt') {
-        this.selectedSize.set(this.tshirtSizes[vote - 1] || null);
-        this.selectedNumber.set(vote);
-      } else {
-        this.selectedNumber.set(vote);
-      }
-    }, { allowSignalWrites: true });
   }
 
   public onValueSelect(vote: number | string): void {

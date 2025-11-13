@@ -27,19 +27,17 @@
 
     <div class="mb-6 min-h-[144px]">
       <div class="grid grid-cols-5 sm:grid-cols-6 gap-3 sm:gap-4 justify-center">
-        @if (votesWithUserIds()) {
-          @for (voteData of votesWithUserIds(); track voteData.userId) {
-            <app-vote-card
-              [vote]="voteData.vote"
-              [userId]="voteData.userId"
-              [currentUserId]="state().userId"
-              [isHost]="state().isHost"
-              [showNullVote]="hasNullVotes(votes())"
-              [estimationType]="state().estimationType || 'fibonacci'"
-              [allVoted]="shouldRevealCards()"
-              (removePlayer)="removePlayer.emit($event)"
-            />
-          }
+        @for (voteData of votesWithUserIds(); track $index) {
+          <app-vote-card
+            [vote]="voteData.vote"
+            [userId]="voteData.userId"
+            [currentUserId]="state().userId"
+            [isHost]="state().isHost"
+            [showNullVote]="hasNullVotes(votes())"
+            [estimationType]="state().estimationType || 'fibonacci'"
+            [allVoted]="shouldRevealCards()"
+            (removePlayer)="removePlayer.emit($event)"
+          />
         }
       </div>
       @if (usersConnectedCount()) {
