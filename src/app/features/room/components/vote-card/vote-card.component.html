@@ -2,6 +2,16 @@
   class="w-16 h-24 bg-gray-900/40 backdrop-blur-xs border border-gray-700/50 rounded-lg relative transition-all duration-300"
   [ngClass]="{ 'border-emerald-500/50': vote() }"
 >
+  @if (showRemoveButton) {
+    <button
+      (click)="onRemoveClick($event)"
+      class="absolute -top-2 -right-2 z-10 w-6 h-6 bg-red-600 hover:bg-red-500 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg"
+      aria-label="Remove player"
+    >
+      <i-tabler name="x" class="w-4 h-4 text-white" />
+    </button>
+  }
+
   @if (!allVoted() || showNullVote() || !vote()) {
     <img
       src="images/deck-card.webp"

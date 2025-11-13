@@ -13,12 +13,14 @@ import { RoomManagementService } from '../../core/services/room-management.servi
 import { FirebaseConnectionService } from '../../core/services/firebase-connection.service';
 import { StorageService } from '../../core/services/storage.service';
 import { LoggerService } from '../../core/services/logger.service';
+import { ParticipantService } from '../../core/services/participant.service';
+import { ConfirmationModalComponent } from '../../shared/components/confirmation-modal/confirmation-modal.component';
 import { FIBONACCI_NUMBERS, TSHIRT_SIZES } from '../../core/constants/estimation.constants';
 
 @Component({
   selector: 'app-room-container',
   standalone: true,
-  imports: [CommonModule, RoomPresentationComponent],
+  imports: [CommonModule, RoomPresentationComponent, ConfirmationModalComponent],
   templateUrl: './room-container.component.html'
 })
 export class RoomContainerComponent implements OnInit {
@@ -31,8 +33,11 @@ export class RoomContainerComponent implements OnInit {
   public usersConnectedCount = signal<number>(0);
   public usersVotedCount = signal<number>(0);
   public votes = signal<(number | null)[]>([]);
+  public votesWithUserIds = signal<Array<{ vote: number | null; userId: string }>>([]);
   public averageVotes = signal<number | string>(0);
   public forceReveal = signal<boolean>(false);
+  public showConfirmationModal = signal(false);
+  public userToRemove = signal<string | null>(null);
 
   private location = inject(Location);
   private router = inject(Router);
@@ -43,6 +48,7 @@ export class RoomContainerComponent implements OnInit {
   private firebaseService = inject(FirebaseConnectionService);
   private storageService = inject(StorageService);
   private logger = inject(LoggerService);
+  private participantService = inject(ParticipantService);
 
   public async ngOnInit(): Promise<void> {
     this.logger.log('RoomContainerComponent: Initializing...');
@@ -118,11 +124,12 @@ export class RoomContainerComponent implements OnInit {
 
     const voteState$ = this.voteStateService.getVoteStateForUI(this.state.roomId);
 
-    const voteState = toSignal(voteState$, { initialValue: { votes: [], usersConnectedCount: 0, usersVotedCount: 0, averageVote: 0, forceReveal: false } });
+    const voteState = toSignal(voteState$, { initialValue: { votes: [], usersConnectedCount: 0, usersVotedCount: 0, averageVote: 0, forceReveal: false, votesWithUserIds: [] } });
 
     effect(() => {
       const state = voteState();
       this.votes.set(state.votes);
+      this.votesWithUserIds.set(state.votesWithUserIds);
       this.usersConnectedCount.set(state.usersConnectedCount);
       this.usersVotedCount.set(state.usersVotedCount);
       this.averageVotes.set(state.averageVote);
@@ -225,6 +232,31 @@ export class RoomContainerComponent implements OnInit {
 
     this.selectedNumber.set(null);
     this.selectedSize.set(null);
+  }
+
+  public onRemovePlayer(userId: string): void {
+    this.userToRemove.set(userId);
+    this.showConfirmationModal.set(true);
+  }
+
+  public async confirmRemovePlayer(): Promise<void> {
+    const userId = this.userToRemove();
+    if (!userId) return;
+
+    try {
+      await this.participantService.removeParticipant(this.state.roomId, userId);
+      this.logger.log('Player removed successfully:', userId);
+    } catch (error) {
+      this.logger.error('Error removing player:', error);
+    } finally {
+      this.showConfirmationModal.set(false);
+      this.userToRemove.set(null);
+    }
+  }
+
+  public cancelRemovePlayer(): void {
+    this.showConfirmationModal.set(false);
+    this.userToRemove.set(null);
   }
 
   private canForceReveal(voted: number, connected: number): boolean {

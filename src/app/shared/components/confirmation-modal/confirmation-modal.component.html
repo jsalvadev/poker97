@@ -1,0 +1,53 @@
+<div
+  class="fixed inset-0 bg-emerald-900/0 backdrop-blur-none z-50 flex items-center justify-center p-4 transition-all duration-500 ease-out modal-open"
+  [ngClass]="{ 'modal-close': isClosing() }"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="modal-title"
+>
+  <div
+    class="bg-gradient-to-br from-gray-700/90 to-emerald-800/90 rounded-lg p-6 max-w-md w-full relative border-l-2 border-red-500/50 shadow-lg transition-all duration-500 ease-out card-open"
+    [ngClass]="{ 'card-close': isClosing() }"
+  >
+    <button
+      (click)="cancelWithAnimation()"
+      class="absolute top-4 right-4 text-gray-400 hover:text-red-400 transition-all duration-300 hover:rotate-90"
+      aria-label="Close modal"
+    >
+      <i-tabler name="x" />
+    </button>
+
+    <div class="mb-6">
+      <h2
+        id="modal-title"
+        class="text-2xl font-semibold text-red-400/90 mb-2 relative inline-block"
+      >
+        <span class="relative z-10">Confirmar eliminación</span>
+        <span
+          class="absolute -bottom-1 left-0 w-full h-2 bg-gradient-to-r from-red-500/50 to-transparent transform -skew-x-12"
+        ></span>
+      </h2>
+      <p class="text-gray-300 text-base mt-4">
+        ¿Estás seguro de que quieres eliminar este jugador de la sala?
+      </p>
+      <p class="text-gray-400 text-sm mt-2">
+        El jugador podrá volver a unirse si tiene el enlace de la sala.
+      </p>
+    </div>
+
+    <div class="flex gap-3 justify-end mt-6">
+      <button
+        (click)="cancelWithAnimation()"
+        class="text-gray-100 py-2 px-6 rounded bg-gray-600 hover:bg-gray-500 transition-all duration-300 hover:scale-105 text-sm"
+      >
+        Cancelar
+      </button>
+      <button
+        (click)="confirmWithAnimation()"
+        class="text-white py-2 px-6 rounded bg-red-600 hover:bg-red-500 transition-all duration-300 hover:scale-105 text-sm"
+      >
+        Eliminar
+      </button>
+    </div>
+  </div>
+</div>
