@@ -152,8 +152,9 @@ export class RoomContainerComponent implements OnInit {
   public onValueSelect(vote: number | string): void {
     let numericVote: number;
     if (this.state.estimationType === 't-shirt') {
-      numericVote = this.tshirtSizes.indexOf(vote as string) + 1;
-      this.selectedSize.set(vote as string);
+      const voteStr = vote as string;
+      numericVote = this.tshirtSizes.indexOf(voteStr as typeof this.tshirtSizes[number]) + 1;
+      this.selectedSize.set(voteStr);
     } else {
       numericVote = vote as number;
     }
