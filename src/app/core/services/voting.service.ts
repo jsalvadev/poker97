@@ -76,6 +76,17 @@ export class VotingService {
     });
   }
 
+  public getAllVotesWithUserIds(roomId: string): Observable<Array<{ vote: number | null; userId: string }>> {
+    return this.firebaseService.createObservable(this.firebaseService.getParticipantsPath(roomId), snapshot => {
+      if (!snapshot.exists()) return [];
+
+      const participants: Participants = snapshot.val();
+      return Object.entries(participants)
+        .filter(([, participant]) => !participant.isSpectator)
+        .map(([userId, participant]) => ({ vote: participant.vote, userId }));
+    });
+  }
+
   public calcAverageVote(roomId: string): Observable<number> {
     return this.getVotes(roomId).pipe(map(votes => {
       if (!votes.length) return 0;

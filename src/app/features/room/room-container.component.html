@@ -6,6 +6,7 @@
   [state]="state"
   [copyingLink]="copyingLink()"
   [votes]="votes()"
+  [votesWithUserIds]="votesWithUserIds()"
   [usersConnectedCount]="usersConnectedCount()"
   [usersVotedCount]="usersVotedCount()"
   [averageVotes]="averageVotes()"
@@ -17,4 +18,12 @@
   (leave)="leaveRoom()"
   (toggleSpectator)="toggleSpectator()"
   (forceRevealCards)="onForceReveal()"
+  (removePlayer)="onRemovePlayer($event)"
 />
+
+@if (showConfirmationModal()) {
+  <app-confirmation-modal
+    (confirm)="confirmRemovePlayer()"
+    (cancel)="cancelRemovePlayer()"
+  />
+}

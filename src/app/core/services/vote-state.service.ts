@@ -77,14 +77,16 @@ export class VoteStateService {
     usersVotedCount: number;
     averageVote: number | string;
     forceReveal: boolean;
+    votesWithUserIds: Array<{ vote: number | null; userId: string }>;
   }> {
     const allVotes$ = this.votingService.getAllVotes(roomId);
+    const allVotesWithUserIds$ = this.votingService.getAllVotesWithUserIds(roomId);
     const usersConnectedCount$ = this.participantService.getActiveParticipantsCount(roomId);
     const usersVotedCount$ = this.votingService.getVotedParticipantsCount(roomId);
     const forceReveal$ = this.votingService.getForceRevealStatus(roomId);
 
-    return combineLatest([allVotes$, usersConnectedCount$, usersVotedCount$, forceReveal$]).pipe(
-      switchMap(async ([votes, connected, voted, forceReveal]: [(number | null)[], number, number, boolean]) => {
+    return combineLatest([allVotes$, allVotesWithUserIds$, usersConnectedCount$, usersVotedCount$, forceReveal$]).pipe(
+      switchMap(async ([votes, votesWithUserIds, connected, voted, forceReveal]: [(number | null)[], Array<{ vote: number | null; userId: string }>, number, number, boolean]) => {
         const numericVotes = votes.filter(v => v !== null) as number[];
         if (connected === voted && connected > 0 && this.checkUnanimousVotes(numericVotes)) {
           this.triggerConfettiOnce(roomId, numericVotes);
@@ -97,7 +99,8 @@ export class VoteStateService {
           usersConnectedCount: connected,
           usersVotedCount: voted,
           averageVote: statistic,
-          forceReveal
+          forceReveal,
+          votesWithUserIds
         };
       })
     );

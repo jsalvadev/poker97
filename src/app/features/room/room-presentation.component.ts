@@ -31,6 +31,7 @@ export class RoomPresentationComponent {
   readonly state = input.required<RoomConfig>();
   readonly copyingLink = input(false);
   readonly votes = input<(number | null)[] | null>([]);
+  readonly votesWithUserIds = input<Array<{ vote: number | null; userId: string }>>([]);
   readonly usersConnectedCount = input<number | null>(0);
   readonly usersVotedCount = input<number | null>(0);
   readonly averageVotes = input<number | string>(0);
@@ -43,6 +44,7 @@ export class RoomPresentationComponent {
   readonly leave = output<void>();
   readonly toggleSpectator = output<void>();
   readonly forceRevealCards = output<void>();
+  readonly removePlayer = output<string>();
 
   @HostListener('window:beforeunload')
   handleWindowClose(): void {

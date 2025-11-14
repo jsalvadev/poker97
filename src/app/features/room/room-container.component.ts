@@ -1,8 +1,8 @@
-import { Component, OnInit, inject, signal, effect } from '@angular/core';
+import { Component, OnInit, inject, signal, effect, computed } from '@angular/core';
 import { CommonModule, Location } from '@angular/common';
-import { Observable, firstValueFrom } from 'rxjs';
-import { map } from 'rxjs/operators';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { Observable, firstValueFrom, of } from 'rxjs';
+import { map, switchMap } from 'rxjs/operators';
+import { toSignal, toObservable } from '@angular/core/rxjs-interop';
 import { RoomConfig } from '../../core/types/room.types';
 import { VoteStateService } from '../../core/services/vote-state.service';
 import { UIStateService } from '../../core/services/ui-state.service';
@@ -13,12 +13,14 @@ import { RoomManagementService } from '../../core/services/room-management.servi
 import { FirebaseConnectionService } from '../../core/services/firebase-connection.service';
 import { StorageService } from '../../core/services/storage.service';
 import { LoggerService } from '../../core/services/logger.service';
+import { ParticipantService } from '../../core/services/participant.service';
+import { ConfirmationModalComponent } from '../../shared/components/confirmation-modal/confirmation-modal.component';
 import { FIBONACCI_NUMBERS, TSHIRT_SIZES } from '../../core/constants/estimation.constants';
 
 @Component({
   selector: 'app-room-container',
   standalone: true,
-  imports: [CommonModule, RoomPresentationComponent],
+  imports: [CommonModule, RoomPresentationComponent, ConfirmationModalComponent],
   templateUrl: './room-container.component.html'
 })
 export class RoomContainerComponent implements OnInit {
@@ -31,8 +33,15 @@ export class RoomContainerComponent implements OnInit {
   public usersConnectedCount = signal<number>(0);
   public usersVotedCount = signal<number>(0);
   public votes = signal<(number | null)[]>([]);
+  public votesWithUserIds = signal<Array<{ vote: number | null; userId: string }>>([]);
   public averageVotes = signal<number | string>(0);
   public forceReveal = signal<boolean>(false);
+  public showConfirmationModal = signal(false);
+  public userToRemove = signal<string | null>(null);
+
+  // Signals for room state that will be set in ngOnInit
+  private roomId = signal<string | null>(null);
+  private userId = signal<string | null>(null);
 
   private location = inject(Location);
   private router = inject(Router);
@@ -43,8 +52,58 @@ export class RoomContainerComponent implements OnInit {
   private firebaseService = inject(FirebaseConnectionService);
   private storageService = inject(StorageService);
   private logger = inject(LoggerService);
+  private participantService = inject(ParticipantService);
 
-  public async ngOnInit(): Promise<void> {
+  constructor() {
+    // Create observables that switch based on roomId/userId signals
+    const voteState$ = toObservable(this.roomId).pipe(
+      switchMap(roomId => {
+        if (!roomId) return of({ votes: [], usersConnectedCount: 0, usersVotedCount: 0, averageVote: 0, forceReveal: false, votesWithUserIds: [] });
+        return this.voteStateService.getVoteStateForUI(roomId);
+      })
+    );
+
+    const userVote$ = toObservable(this.roomId).pipe(
+      switchMap(roomId => {
+        const uid = this.userId();
+        if (!roomId || !uid) return of(null);
+        return this.votingService.getUserVote(roomId, uid);
+      })
+    );
+
+    // Convert observables to signals - this happens once in constructor (injection context)
+    const voteState = toSignal(voteState$, { initialValue: { votes: [], usersConnectedCount: 0, usersVotedCount: 0, averageVote: 0, forceReveal: false, votesWithUserIds: [] } });
+    const userVote = toSignal(userVote$, { initialValue: null });
+
+    // Set up effects to sync signals with component state
+    effect(() => {
+      const state = voteState();
+      this.votes.set(state.votes);
+      this.votesWithUserIds.set(state.votesWithUserIds);
+      this.usersConnectedCount.set(state.usersConnectedCount);
+      this.usersVotedCount.set(state.usersVotedCount);
+      this.averageVotes.set(state.averageVote);
+      this.forceReveal.set(state.forceReveal);
+    }, { allowSignalWrites: true });
+
+    effect(() => {
+      const vote = userVote();
+      if (vote === null) {
+        this.selectedNumber.set(null);
+        this.selectedSize.set(null);
+        return;
+      }
+
+      if (this.state.estimationType === 't-shirt') {
+        this.selectedSize.set(this.tshirtSizes[vote - 1] || null);
+        this.selectedNumber.set(vote);
+      } else {
+        this.selectedNumber.set(vote);
+      }
+    }, { allowSignalWrites: true });
+  }
+
+  public ngOnInit(): void {
     this.logger.log('RoomContainerComponent: Initializing...');
 
     const locationState = this.location.getState() as RoomConfig;
@@ -85,75 +144,46 @@ export class RoomContainerComponent implements OnInit {
     this.logger.log('Storing state in sessionStorage:', stateToStore);
     this.storageService.setItem('roomConfig', JSON.stringify(stateToStore));
 
-    if (this.state.isHost) {
-      try {
-        await this.firebaseService.updateData(
-          this.firebaseService.getParticipantPath(this.state.roomId, this.state.userId),
-          {
-            lastActive: Date.now(),
-            isHost: true,
-            isSpectator: false
-          }
-        );
+    // Set signals to trigger reactive subscriptions
+    this.roomId.set(this.state.roomId);
+    this.userId.set(this.state.userId);
 
-        await this.firebaseService.updateData(`rooms/${this.state.roomId}`, {
-          hostId: this.state.userId,
-          lastActivity: Date.now()
-        });
-      } catch (error) {
-        this.logger.error('Error restoring host session:', error);
-      }
+    // Perform async operations without blocking
+    this.initializeFirebaseConnections();
+  }
+
+  private initializeFirebaseConnections(): void {
+    if (this.state.isHost) {
+      this.firebaseService.updateData(
+        this.firebaseService.getParticipantPath(this.state.roomId, this.state.userId),
+        {
+          lastActive: Date.now(),
+          isHost: true,
+          isSpectator: false
+        }
+      ).catch(error => this.logger.error('Error restoring host session:', error));
+
+      this.firebaseService.updateData(`rooms/${this.state.roomId}`, {
+        hostId: this.state.userId,
+        lastActivity: Date.now()
+      }).catch(error => this.logger.error('Error updating room data:', error));
     } else {
       this.uiStateService.setupRoomDeletionListener(this.state.roomId);
+      this.uiStateService.setupParticipantRemovalListener(this.state.roomId, this.state.userId);
 
-      try {
-        await this.firebaseService.updateData(
-          this.firebaseService.getParticipantPath(this.state.roomId, this.state.userId),
-          { lastActive: Date.now() }
-        );
-      } catch (error) {
-        this.logger.error('Error updating participant status:', error);
-      }
+      this.firebaseService.updateData(
+        this.firebaseService.getParticipantPath(this.state.roomId, this.state.userId),
+        { lastActive: Date.now() }
+      ).catch(error => this.logger.error('Error updating participant status:', error));
     }
-
-    const voteState$ = this.voteStateService.getVoteStateForUI(this.state.roomId);
-
-    const voteState = toSignal(voteState$, { initialValue: { votes: [], usersConnectedCount: 0, usersVotedCount: 0, averageVote: 0, forceReveal: false } });
-
-    effect(() => {
-      const state = voteState();
-      this.votes.set(state.votes);
-      this.usersConnectedCount.set(state.usersConnectedCount);
-      this.usersVotedCount.set(state.usersVotedCount);
-      this.averageVotes.set(state.averageVote);
-      this.forceReveal.set(state.forceReveal);
-    }, { allowSignalWrites: true });
-
-    const userVote$ = this.votingService.getUserVote(this.state.roomId, this.state.userId);
-    const userVote = toSignal(userVote$, { initialValue: null });
-
-    effect(() => {
-      const vote = userVote();
-      if (vote === null) {
-        this.selectedNumber.set(null);
-        this.selectedSize.set(null);
-        return;
-      }
-
-      if (this.state.estimationType === 't-shirt') {
-        this.selectedSize.set(this.tshirtSizes[vote - 1] || null);
-        this.selectedNumber.set(vote);
-      } else {
-        this.selectedNumber.set(vote);
-      }
-    }, { allowSignalWrites: true });
   }
 
   public onValueSelect(vote: number | string): void {
     let numericVote: number;
     if (this.state.estimationType === 't-shirt') {
-      numericVote = this.tshirtSizes.indexOf(vote as string) + 1;
-      this.selectedSize.set(vote as string);
+      const voteStr = vote as string;
+      numericVote = this.tshirtSizes.indexOf(voteStr as typeof this.tshirtSizes[number]) + 1;
+      this.selectedSize.set(voteStr);
     } else {
       numericVote = vote as number;
     }
@@ -224,6 +254,31 @@ export class RoomContainerComponent implements OnInit {
 
     this.selectedNumber.set(null);
     this.selectedSize.set(null);
+  }
+
+  public onRemovePlayer(userId: string): void {
+    this.userToRemove.set(userId);
+    this.showConfirmationModal.set(true);
+  }
+
+  public async confirmRemovePlayer(): Promise<void> {
+    const userId = this.userToRemove();
+    if (!userId) return;
+
+    try {
+      await this.participantService.removeParticipant(this.state.roomId, userId);
+      this.logger.log('Player removed successfully:', userId);
+    } catch (error) {
+      this.logger.error('Error removing player:', error);
+    } finally {
+      this.showConfirmationModal.set(false);
+      this.userToRemove.set(null);
+    }
+  }
+
+  public cancelRemovePlayer(): void {
+    this.showConfirmationModal.set(false);
+    this.userToRemove.set(null);
   }
 
   private canForceReveal(voted: number, connected: number): boolean {

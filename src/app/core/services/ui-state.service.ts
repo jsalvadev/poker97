@@ -106,4 +106,18 @@ export class UIStateService {
         }
       });
   }
+
+  public setupParticipantRemovalListener(roomId: string, userId: string): void {
+    this.participantService.listenToParticipantRemoval(roomId, userId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.router.navigate(['/welcome']);
+        },
+        error: (error) => {
+          console.error('Error listening to participant removal:', error);
+          this.router.navigate(['/welcome']);
+        }
+      });
+  }
 }
