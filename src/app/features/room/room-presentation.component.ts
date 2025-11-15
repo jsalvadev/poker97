@@ -8,6 +8,7 @@ import { VoteCardComponent } from './components/vote-card/vote-card.component';
 import { SocialLinksComponent } from '../../shared/components/social-links/social-links.component';
 import { ImageCardComponent } from '../../shared/components/image-card/image-card.component';
 import { ContainerComponent } from '../../shared/components/container/container.component';
+import { SupportBannerComponent } from '../../shared/components/support-banner/support-banner.component';
 
 @Component({
   selector: 'app-room-presentation',
@@ -19,7 +20,8 @@ import { ContainerComponent } from '../../shared/components/container/container.
     VoteCardComponent,
     SocialLinksComponent,
     ImageCardComponent,
-    ContainerComponent
+    ContainerComponent,
+    SupportBannerComponent
   ],
   templateUrl: './room-presentation.component.html'
 })

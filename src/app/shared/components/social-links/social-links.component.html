@@ -26,4 +26,20 @@
   >
     jsalvadev.github.io
   </a>
+  <span [ngClass]="theme() === 'light' ? 'text-emerald-200 text-lg' : 'text-gray-400'">·</span>
+  <a
+    href="https://buymeacoffee.com/jsalvadev"
+    target="_blank"
+    rel="noopener noreferrer"
+    [ngClass]="theme() === 'light' ? 'text-emerald-200 hover:text-yellow-400' : 'text-gray-400 hover:text-yellow-400'"
+    class="transition-colors duration-300 text-base flex items-center gap-1.5"
+    aria-label="Support this project"
+    title="Support this project"
+  >
+    <i-tabler
+      name="coffee"
+      class="h-6! w-6!"
+    />
+    <span class="text-sm">Support</span>
+  </a>
 </div>
