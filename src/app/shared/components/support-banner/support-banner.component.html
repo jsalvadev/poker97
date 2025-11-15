@@ -1,0 +1,55 @@
+@if (!dismissed()) {
+  <div class="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 animate-fadeIn">
+    <div class="bg-gradient-to-r from-emerald-900/95 to-emerald-800/95 backdrop-blur-sm border border-emerald-600/50 rounded-lg shadow-2xl px-6 py-4 max-w-2xl mx-4">
+      <div class="flex items-start gap-4">
+        <div class="flex-shrink-0 mt-0.5">
+          <i-tabler name="sparkles" class="h-6! w-6! text-yellow-400" />
+        </div>
+
+        <div class="flex-1">
+          <p class="text-emerald-100 text-sm md:text-base mb-2">
+            <span class="font-semibold">¿Te gustaría tener más funcionalidades?</span>
+          </p>
+          <p class="text-emerald-200/80 text-xs md:text-sm mb-3">
+            Estamos considerando añadir historial de votaciones, integraciones con Jira, analytics del equipo y más.
+            <a
+              href="mailto:contact@jsalvadev.com?subject=Poker97%20-%20Interés%20en%20características%20premium&body=Hola,%0D%0A%0D%0AMe%20interesaría%20tener%20las%20siguientes%20características%20premium:%0D%0A%0D%0A-%20%0D%0A-%20%0D%0A%0D%0AGracias!"
+              class="text-yellow-400 hover:text-yellow-300 underline transition-colors"
+              target="_blank"
+            >
+              Cuéntanos qué te interesaría
+            </a>
+          </p>
+
+          <div class="flex flex-wrap gap-2">
+            <a
+              href="https://buymeacoffee.com/jsalvadev"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-1.5 bg-yellow-500 hover:bg-yellow-400 text-gray-900 px-3 py-1.5 rounded text-xs md:text-sm font-medium transition-all duration-300 transform hover:scale-105"
+            >
+              <i-tabler name="coffee" class="h-4! w-4!" />
+              Apoya el proyecto
+            </a>
+
+            <a
+              href="mailto:contact@jsalvadev.com?subject=Poker97%20-%20Feedback"
+              class="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded text-xs md:text-sm font-medium transition-colors"
+            >
+              <i-tabler name="message-circle" class="h-4! w-4!" />
+              Enviar feedback
+            </a>
+          </div>
+        </div>
+
+        <button
+          (click)="dismiss()"
+          class="flex-shrink-0 text-emerald-300 hover:text-white transition-colors p-1"
+          aria-label="Cerrar banner"
+        >
+          <i-tabler name="x" class="h-5! w-5!" />
+        </button>
+      </div>
+    </div>
+  </div>
+}

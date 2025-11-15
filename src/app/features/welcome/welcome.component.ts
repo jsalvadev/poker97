@@ -7,10 +7,11 @@ import { RoomManagementService } from '../../core/services/room-management.servi
 import { HelpModalComponent } from '../../shared/components/help-modal/help-modal.component';
 import { TablerIconComponent } from 'angular-tabler-icons';
 import { SocialLinksComponent } from '../../shared/components/social-links/social-links.component';
+import { SupportBannerComponent } from '../../shared/components/support-banner/support-banner.component';
 
 @Component({
   selector: 'app-welcome',
-  imports: [FormsModule, HelpModalComponent, TablerIconComponent, SocialLinksComponent],
+  imports: [FormsModule, HelpModalComponent, TablerIconComponent, SocialLinksComponent, SupportBannerComponent],
   templateUrl: './welcome.component.html',
   styleUrls: ['./welcome.component.css']
 })
