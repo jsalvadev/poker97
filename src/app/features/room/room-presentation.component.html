@@ -1,4 +1,4 @@
-<div class="min-h-screen w-full bg-background">
+<div class="min-h-screen w-full bg-transparent">
   <app-container
     customClasses="flex flex-col items-center pb-8 relative animate-fadeIn motion-safe:transition-all motion-safe:duration-300"
   >
@@ -25,7 +25,7 @@
       />
     </div>
 
-    <div class="mb-6 min-h-[144px]">
+    <div class="mb-6 p-8 rounded-2xl backdrop-blur-sm border border-[#595741]/30 shadow-lg" style="background: linear-gradient(to bottom right, #595741, #6b6a52, #595741);">
       <div class="grid grid-cols-5 sm:grid-cols-6 gap-3 sm:gap-4 justify-center">
         @for (voteData of votesWithUserIds(); track $index) {
           <app-vote-card
@@ -40,16 +40,17 @@
           />
         }
       </div>
-      @if (usersConnectedCount()) {
-        @if (usersVotedCount()) {
-          <p class="text-gray-300 text-center mt-10">
-            {{ usersVotedCount() }}/{{ usersConnectedCount() }} players voted
-          </p>
-        } @else {
-          <p class="text-gray-300 text-center mt-10">Waiting for players to vote...</p>
-        }
-      }
     </div>
+
+    @if (usersConnectedCount()) {
+      @if (usersVotedCount()) {
+        <p class="text-gray-300 text-center mb-6">
+          {{ usersVotedCount() }}/{{ usersConnectedCount() }} players voted
+        </p>
+      } @else {
+        <p class="text-gray-300 text-center mb-6">Waiting for players to vote...</p>
+      }
+    }
 
     @if (!state().isSpectator) {
       <app-vote-controls

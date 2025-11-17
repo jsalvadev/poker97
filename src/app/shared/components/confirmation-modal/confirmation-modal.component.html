@@ -12,7 +12,7 @@
     <button
       (click)="cancelWithAnimation()"
       class="absolute top-4 right-4 text-gray-400 hover:text-emerald-400 transition-all duration-300 hover:rotate-90"
-      aria-label="Cerrar modal"
+      aria-label="Close modal"
     >
       <i-tabler name="x" />
     </button>
@@ -22,16 +22,16 @@
         id="modal-title"
         class="text-2xl font-semibold text-emerald-400/90 mb-2 relative inline-block"
       >
-        <span class="relative z-10">Confirmar eliminación</span>
+        <span class="relative z-10">Confirm Removal</span>
         <span
           class="absolute -bottom-1 left-0 w-full h-2 bg-gradient-to-r from-emerald-500/50 to-transparent transform -skew-x-12"
         ></span>
       </h2>
       <p class="text-gray-300 text-base mt-4">
-        ¿Estás seguro de que quieres eliminar este jugador de la sala?
+        Are you sure you want to remove this player from the room?
       </p>
       <p class="text-gray-400 text-sm mt-2">
-        El jugador podrá volver a unirse si tiene el enlace de la sala.
+        The player can rejoin if they have the room link.
       </p>
     </div>
 
@@ -40,13 +40,13 @@
         (click)="cancelWithAnimation()"
         class="text-gray-100 py-2 px-6 rounded bg-gray-600 hover:bg-gray-500 transition-all duration-300 hover:scale-105 text-sm"
       >
-        Cancelar
+        Cancel
       </button>
       <button
         (click)="confirmWithAnimation()"
         class="text-white py-2 px-6 rounded bg-emerald-600 hover:bg-emerald-500 transition-all duration-300 hover:scale-105 text-sm"
       >
-        Eliminar
+        Remove
       </button>
     </div>
   </div>
