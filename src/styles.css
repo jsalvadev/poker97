@@ -118,7 +118,7 @@
 
 @layer base {
   body {
-    background: linear-gradient(to bottom right, #0a3d27, #104d35, #0a3d27);
+    background: linear-gradient(to bottom right, #595741, #6b6850, #595741);
     min-height: 100dvh;
     font-family: 'Poppins', sans-serif;
     font-size: 16px;
